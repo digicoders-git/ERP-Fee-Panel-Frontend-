@@ -1,0 +1,9 @@
+To install Recharts library, run this command in your terminal:
+
+npm install recharts
+
+or if you're using yarn:
+
+yarn add recharts
+
+After installation, restart your development server.
