@@ -14,8 +14,6 @@ const Students = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
-
-
   const getStatusColor = (status) => {
     switch (status) {
       case 'Paid': return 'bg-green-100 text-green-800';
@@ -30,9 +28,16 @@ const Students = () => {
     return pendingAmount === 0 ? 'Paid' : pendingAmount > 5000 ? 'Overdue' : 'Pending';
   };
 
+  const getClassName = (classObj) => {
+    if (!classObj) return 'N/A';
+    if (typeof classObj === 'string') return classObj;
+    return classObj.className || classObj.name || 'N/A';
+  };
+
   const filteredStudents = students.filter(student => {
+    const classStr = getClassName(student.class);
     const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.class.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      classStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.displayId.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.rollNo.includes(searchTerm);
     
@@ -186,7 +191,7 @@ const Students = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {student.class}
+                      {getClassName(student.class)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">
                       {student.displayId}

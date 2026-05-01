@@ -64,6 +64,12 @@ const Dashboard = () => {
     }
   ];
 
+  const getClassName = (classObj) => {
+    if (!classObj) return 'N/A';
+    if (typeof classObj === 'string') return classObj;
+    return classObj.className || classObj.name || 'N/A';
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -120,7 +126,7 @@ const Dashboard = () => {
               <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100">
                 <div>
                   <p className="font-medium text-gray-800">{item.studentName}</p>
-                  <p className="text-sm text-gray-600">ID: {item.admissionNumber || 'N/A'} | Class: {item.class}</p>
+                  <p className="text-sm text-gray-600">ID: {item.admissionNumber || 'N/A'} | Class: {getClassName(item.class)}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-green-600">₹{item.amount.toLocaleString()}</p>
@@ -138,7 +144,7 @@ const Dashboard = () => {
               <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100">
                 <div>
                   <p className="font-medium text-gray-800">{item.studentName}</p>
-                  <p className="text-sm text-gray-600">ID: {item.admissionNumber} | Class: {item.class}</p>
+                  <p className="text-sm text-gray-600">ID: {item.admissionNumber} | Class: {getClassName(item.class)}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-red-600">₹{item.amount.toLocaleString()}</p>

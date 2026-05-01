@@ -3,6 +3,7 @@ import { FaSearch, FaMoneyBillWave, FaReceipt, FaChevronLeft, FaChevronRight, Fa
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { useStudents } from '../context/StudentContext';
+import api from '../utils/api';
 
 const FeeCollection = () => {
   const { students, collectFee } = useStudents();
@@ -58,65 +59,269 @@ const FeeCollection = () => {
     setPaymentAmount(student.pendingFee?.toString() || '0');
   };
 
+  const [branding, setBranding] = useState({});
+
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const branchId = localStorage.getItem('selectedBranch') || '';
+        if (branchId) {
+          const res = await api.get(`/api/client-settings/branding?branchId=${branchId}`);
+          if (res.data.success) {
+            setBranding(res.data.branding || {});
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch branding settings:', err);
+      }
+    };
+    fetchBranding();
+  }, []);
+
+  const numberToWords = (num) => {
+    const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    const inWords = (num) => {
+        if ((num = num.toString()).length > 9) return 'overflow';
+        let n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+        if (!n) return;
+        let str = '';
+        str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'Crore ' : '';
+        str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'Lakh ' : '';
+        str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'Thousand ' : '';
+        str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'Hundred ' : '';
+        str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) + 'Only ' : '';
+        return str;
+    }
+    return inWords(num);
+  };
+
+  const getImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002';
+    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
   const generateReceipt = (student, amount, method, refId) => {
+    const amountInWords = numberToWords(amount);
+    const logoUrl = getImageUrl(branding.logo);
+    
     const receiptContent = `
       <html>
         <head>
-          <title>Fee Receipt - ${student.name}</title>
+          <title>Receipt - ${student.name}</title>
           <style>
-            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1f2937; }
-            .receipt-card { border: 2px solid #e5e7eb; border-radius: 12px; padding: 30px; max-width: 600px; margin: auto; }
-            .header { text-align: center; border-bottom: 2px solid #f3f4f6; margin-bottom: 20px; padding-bottom: 20px; }
-            .school-name { font-size: 24px; font-weight: 800; color: #3b82f6; }
-            .receipt-title { font-size: 18px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; }
-            .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-            .label { font-size: 12px; color: #9ca3af; text-transform: uppercase; font-weight: 600; }
-            .value { font-size: 16px; font-weight: 600; }
-            .amount-section { background: #f9fafb; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px; }
-            .amount-label { font-size: 14px; color: #6b7280; }
-            .amount-value { font-size: 32px; font-weight: 800; color: #059669; }
-            .footer { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 40px; }
+            body { 
+                margin: 0; 
+                padding: 20px; 
+                font-family: 'Courier New', Courier, monospace; 
+                color: #000;
+                background: #fff;
+                display: flex;
+                justify-content: center;
+            }
+            .receipt-main {
+                width: 800px;
+                padding: 20px;
+                background: #fff;
+                position: relative;
+            }
+            .header-container {
+                border: 2px solid #000;
+                padding: 15px;
+                margin-bottom: 30px;
+                display: flex;
+                align-items: center;
+                gap: 20px;
+                min-height: 100px;
+            }
+            .header-logo {
+                width: 90px;
+                height: 90px;
+                object-fit: contain;
+                flex-shrink: 0;
+            }
+            .header-text {
+                flex: 1;
+                text-align: center;
+            }
+            .inst-name {
+                font-size: 32px;
+                font-weight: bold;
+                margin-bottom: 5px;
+                text-transform: uppercase;
+            }
+            .inst-details {
+                font-size: 14px;
+                line-height: 1.5;
+            }
+            .receipt-title {
+                text-align: center;
+                font-size: 24px;
+                font-weight: bold;
+                text-decoration: underline;
+                margin: 40px 0;
+                letter-spacing: 2px;
+            }
+            .meta-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 25px;
+                font-size: 18px;
+            }
+            .line-fill {
+                border-bottom: 2px solid #000;
+                display: inline-block;
+                padding: 0 10px;
+                min-width: 150px;
+                font-weight: bold;
+            }
+            .content-section {
+                font-size: 19px;
+                line-height: 2;
+                margin-bottom: 30px;
+            }
+            .full-line {
+                border-bottom: 2px solid #000;
+                display: inline-block;
+                flex: 1;
+                margin: 0 10px;
+                padding: 0 15px;
+                font-weight: bold;
+            }
+            
+            /* Table Styling */
+            .fee-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 25px 0;
+            }
+            .fee-table th, .fee-table td {
+                border: 2px solid #000;
+                padding: 12px;
+                text-align: left;
+                font-size: 18px;
+            }
+            .fee-table th {
+                background-color: #f2f2f2;
+                text-transform: uppercase;
+            }
+
+            .footer-section {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                margin-top: 50px;
+            }
+            .rs-box-outer {
+                border: 2px solid #000;
+                padding: 15px 30px;
+                font-size: 22px;
+                font-weight: bold;
+                display: inline-block;
+            }
+            .rs-fill {
+                border-bottom: 2px solid #000;
+                padding: 0 10px;
+                min-width: 120px;
+                display: inline-block;
+            }
+            .sig-text {
+                font-size: 18px;
+                font-weight: bold;
+                text-align: center;
+            }
+
+            /* Watermark Styling */
+            .watermark {
+                position: absolute;
+                top: 55%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 450px;
+                opacity: 0.15;
+                z-index: -1;
+                pointer-events: none;
+            }
+
+            @media print {
+                body { padding: 0; }
+                .receipt-main { width: 100%; border: none; position: relative; }
+                .watermark { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; opacity: 0.15 !important; }
+            }
           </style>
         </head>
         <body>
-          <div class="receipt-card">
-            <div class="header">
-              <div class="school-name">EDUTECH INTERNATIONAL SCHOOL</div>
-              <div class="receipt-title">Official Fee Receipt</div>
+          <div class="receipt-main">
+            ${logoUrl ? `<img src="${logoUrl}" class="watermark" />` : ''}
+            
+            <div class="header-container">
+              ${logoUrl ? `<img src="${logoUrl}" class="header-logo" />` : ''}
+              <div class="header-text">
+                <div class="inst-name">${branding.schoolName || 'Institution Name'}</div>
+                <div class="inst-details">
+                  <div>Address: <span style="font-weight: bold;">${branding.address || ''}</span></div>
+                  <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                    <span>Ph No: <span style="font-weight: bold;">${branding.phone || ''}</span></span>
+                    <span>Email ID: <span style="font-weight: bold;">${branding.email || ''}</span></span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="details-grid">
-              <div>
-                <div class="label">Student Name</div>
-                <div class="value">${student.name}</div>
-              </div>
-              <div>
-                <div class="label">Receipt Date</div>
-                <div class="value">${new Date().toLocaleDateString()}</div>
-              </div>
-              <div>
-                <div class="label">Class & Roll No</div>
-                <div class="value">${student.class} | ${student.rollNo}</div>
-              </div>
-              <div>
-                <div class="label">Payment Mode</div>
-                <div class="value">${method}</div>
-              </div>
-              ${refId ? `
-              <div>
-                <div class="label">Reference ID</div>
-                <div class="value">${refId}</div>
-              </div>` : ''}
+            
+            <div class="receipt-title">RECEIPT</div>
+            
+            <div class="meta-row">
+              <div>No: <span class="line-fill">${refId}</span></div>
+              <div>Date: <span class="line-fill">${new Date().toLocaleDateString()}</span></div>
             </div>
-            <div class="amount-section">
-              <div class="amount-label">Total Paid Amount</div>
-              <div class="amount-value">₹${amount.toLocaleString()}</div>
+            
+            <div class="content-section">
+              <div style="display: flex;">
+                Received with thanks from <span class="full-line">${student.name}</span>
+              </div>
+              
+              <table class="fee-table">
+                <thead>
+                  <tr>
+                    <th>Description</th>
+                    <th style="text-align: right;">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Towards ${student.class} Fee</td>
+                    <td style="text-align: right; font-weight: bold;">₹${amount.toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <td>Amount in Words: <i>${amountInWords}</i></td>
+                    <td style="text-align: right;">-</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div style="margin-top: 10px;">
+                Payment Mode: <span style="font-weight: bold; text-decoration: underline;">${method}</span>
+              </div>
             </div>
-            <div class="footer">
-              This is a computer-generated receipt. No signature required.
-              <br>Thank you for your payment!
+            
+            <div class="footer-section">
+              <div class="rs-box-outer">
+                Rs: <span class="rs-fill">${amount.toLocaleString()}</span>
+              </div>
+              <div class="sig-text">
+                Receiver Signature
+              </div>
             </div>
           </div>
-          <script>window.print();</script>
+          <script>
+            window.onload = () => {
+              window.print();
+              setTimeout(() => window.close(), 500);
+            };
+          </script>
         </body>
       </html>
     `;

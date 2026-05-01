@@ -121,6 +121,29 @@ Thank you for your payment!
       console.error('Download error:', error);
       toast.error('Failed to generate receipt');
     }
+  };  const numberToWords = (num) => {
+    const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+    const inWords = (num) => {
+        if ((num = num.toString()).length > 9) return 'overflow';
+        let n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+        if (!n) return;
+        let str = '';
+        str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'Crore ' : '';
+        str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'Lakh ' : '';
+        str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'Thousand ' : '';
+        str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'Hundred ' : '';
+        str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) + 'Only ' : '';
+        return str;
+    }
+    return inWords(num);
+  };
+  const getImageUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002';
+    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
   };
 
   const printReceipt = async (receipt) => {
@@ -128,201 +151,401 @@ Thank you for your payment!
       const response = await api.get(`/api/fee-panel/payment/receipt/${receipt._id}`);
       if (response.data && response.data.data) {
         const r = response.data.data;
+        const amountInWords = numberToWords(r.payment.amount);
+        const logoUrl = getImageUrl(r.branch?.logo);
         const printContent = `
         <style>
-          @media print {
-            body { margin: 0; padding: 0; }
-            .no-print { display: none; }
-            .receipt-container { border: 1px solid #000 !important; box-shadow: none !important; }
-          }
-          .receipt-container {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px;
-            border: 2px solid #1e3a8a;
-            border-radius: 8px;
-            color: #1e293b;
-            background: #fff;
-          }
-          .header {
-            text-align: center;
-            border-bottom: 2px solid #1e3a8a;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-          }
-          .school-name {
-            font-size: 32px;
-            font-weight: 800;
-            color: #1e3a8a;
-            margin: 0;
-            letter-spacing: 1px;
-          }
-          .school-info {
-            font-size: 14px;
-            color: #64748b;
-            margin: 5px 0;
-            font-weight: 500;
-          }
-          .receipt-title {
-            display: inline-block;
-            background: #1e3a8a;
-            color: #fff;
-            padding: 5px 25px;
-            border-radius: 20px;
-            font-size: 16px;
-            font-weight: 600;
-            margin-top: 15px;
-            text-transform: uppercase;
-          }
-          .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1.5fr 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 8px;
-          }
-          .info-item { margin-bottom: 10px; font-size: 14px; }
-          .info-label { color: #64748b; font-weight: 600; font-size: 12px; text-transform: uppercase; display: block; }
-          .info-value { color: #1e293b; font-weight: 700; font-size: 15px; }
+          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap');
           
-          .fee-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 40px;
+          :root {
+            --primary: #1e293b;
+            --accent: #4f46e5;
+            --success: #10b981;
+            --text-main: #334155;
+            --text-light: #64748b;
           }
-          .fee-table th {
-            background: #1e3a8a;
-            color: #fff;
-            text-align: left;
-            padding: 12px 15px;
-            font-size: 14px;
-            text-transform: uppercase;
-          }
-          .fee-table td {
-            padding: 15px;
-            border-bottom: 1px solid #e2e8f0;
-            font-size: 15px;
-          }
-          .amount-row {
-            background: #f1f5f9;
-            font-weight: 800;
-          }
-          .total-amount {
-            color: #059669;
-            font-size: 20px;
-          }
-          .signatures {
+
+          body { 
+            font-family: 'Outfit', sans-serif; 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 40px; 
+            background: #fff; 
+            -webkit-print-color-adjust: exact;
             display: flex;
-            justify-content: space-between;
-            margin-top: 80px;
-            padding: 0 40px;
+            justify-content: center;
           }
-          .sig-box {
-            text-align: center;
-            width: 200px;
-            border-top: 1px solid #1e293b;
-            padding-top: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            color: #475569;
+
+          .receipt-main {
+            width: 800px;
+            padding: 40px;
+            background: #fff;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
           }
-          .watermark {
+
+          /* Watermark */
+          .watermark-text {
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 100px;
-            color: rgba(0,0,0,0.03);
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 70px;
+            font-weight: 900;
+            color: rgba(79, 70, 229, 0.04);
+            white-space: nowrap;
             pointer-events: none;
             z-index: 0;
-            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 12px;
+          }
+
+          .watermark-img {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            opacity: 0.05;
+            z-index: 0;
+            pointer-events: none;
+          }
+
+          .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 2px solid #f1f5f9; 
+            padding-bottom: 25px; 
+            margin-bottom: 35px; 
+            position: relative;
+            z-index: 1;
+          }
+
+          .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+          }
+
+          .logo-box {
+            width: 60px;
+            height: 60px;
+            background: var(--accent);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+          }
+
+          .logo-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          .logo-box span {
+            color: white;
+            font-weight: 900;
+            font-size: 24px;
+          }
+
+          .inst-info h1 { 
+            font-size: 24px; 
+            font-weight: 800; 
+            margin: 0; 
+            color: var(--primary); 
+            letter-spacing: -0.5px;
+            text-transform: uppercase;
+          }
+
+          .inst-info p { 
+            font-size: 12px; 
+            color: var(--text-light); 
+            margin: 4px 0 0 0; 
+            max-width: 300px; 
+            line-height: 1.4;
+          }
+
+          .receipt-meta {
+            text-align: right;
+          }
+
+          .receipt-meta h2 { 
+            font-size: 12px; 
+            font-weight: 900; 
+            color: var(--accent); 
+            margin: 0; 
+            text-transform: uppercase; 
+            letter-spacing: 2px;
+          }
+
+          .receipt-no { 
+            font-size: 26px; 
+            font-weight: 800; 
+            margin: 5px 0 0 0; 
+            color: var(--primary); 
+          }
+
+          .details-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 30px;
+            margin-bottom: 35px;
+            position: relative;
+            z-index: 1;
+          }
+
+          .info-box h3 {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+          }
+
+          .info-box p {
+            font-size: 15px;
+            font-weight: 700;
+            margin: 0;
+            color: var(--primary);
+          }
+
+          .sub-text {
+            font-size: 11px;
+            color: var(--text-light);
+            margin-top: 3px;
+          }
+
+          .table-section {
+            position: relative;
+            z-index: 1;
+            margin-bottom: 30px;
+          }
+
+          .fee-table { 
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0;
+          }
+
+          .fee-table th { 
+            text-align: left; 
+            background: #f8fafc; 
+            padding: 16px; 
+            font-size: 11px; 
+            font-weight: 800; 
+            color: var(--text-light); 
+            text-transform: uppercase; 
+            border-top: 1.5px solid var(--primary);
+            border-bottom: 1px solid #e2e8f0;
+          }
+
+          .fee-table td { 
+            padding: 18px 16px; 
+            border-bottom: 1px solid #f1f5f9; 
+            font-size: 15px; 
+            color: var(--text-main); 
+          }
+
+          .val { 
+            text-align: right; 
+            font-weight: 700; 
+          }
+
+          .summary-wrap {
+            display: flex;
+            justify-content: flex-end;
+            position: relative;
+            z-index: 1;
+          }
+
+          .summary-card {
+            width: 300px;
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 18px;
+          }
+
+          .item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 13px;
+          }
+
+          .total-item {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #cbd5e1;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--accent);
+          }
+
+          .paid-stamp {
+            position: absolute;
+            top: 180px;
+            right: 60px;
+            border: 5px solid var(--success);
+            color: var(--success);
+            padding: 12px 25px;
+            border-radius: 15px;
+            font-weight: 900;
+            font-size: 32px;
+            text-transform: uppercase;
+            transform: rotate(15deg);
+            opacity: 0.15;
+            z-index: 0;
+          }
+
+          .footer-wrap { 
+            margin-top: 50px; 
+            padding-top: 25px; 
+            border-top: 1px solid #f1f5f9; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-end; 
+            position: relative;
+            z-index: 1;
+          }
+
+          .note { 
+            font-size: 10px; 
+            color: var(--text-light); 
+            line-height: 1.6;
+            max-width: 450px;
+          }
+
+          .signature-wrap {
+            text-align: center;
+          }
+
+          .line {
+            width: 170px;
+            border-top: 2px solid var(--primary);
+            margin-bottom: 10px;
+          }
+
+          .signature-wrap p {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--text-light);
+            text-transform: uppercase;
+          }
+
+          @media print {
+            body { padding: 0; }
+            .receipt-main { box-shadow: none; border: none; padding: 10px; width: 100%; }
+            .paid-stamp { opacity: 0.2; }
           }
         </style>
 
-        <div class="receipt-container" style="position: relative; overflow: hidden;">
-          <div class="watermark">PAID OFFICIAL</div>
+        <div class="receipt-main">
+          ${logoUrl ? `<img src="${logoUrl}" class="watermark-img" />` : `<div class="watermark-text">${r.branch?.name || 'SCHOOL'}</div>`}
           
+          ${r.payment.status === 'paid' || r.balance === 0 ? '<div class="paid-stamp">PAID</div>' : ''}
+
           <div class="header">
-            <h1 class="school-name">${(r.branch?.name || 'School Name').toUpperCase()}</h1>
-            <p class="school-info">${r.branch?.address || 'School Location Address'}</p>
-            <p class="school-info">Phone: ${r.branch?.phone || 'N/A'} | Email: ${r.branch?.email || 'N/A'}</p>
-            <div class="receipt-title">Official Fee Receipt</div>
-          </div>
-
-          <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: 700; font-size: 14px;">
-            <div style="color: #1e3a8a;">RECEIPT NO: ${r.receiptNumber}</div>
-            <div>DATE: ${new Date(r.date).toLocaleDateString('en-IN')}</div>
-          </div>
-
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">Student Name</span>
-              <span class="info-value">${r.student.name}</span>
+            <div class="logo-area">
+              <div class="logo-box">
+                ${logoUrl ? `<img src="${logoUrl}" alt="logo" />` : `<span>${(r.branch?.name || 'S').charAt(0)}</span>`}
+              </div>
+              <div class="inst-info">
+                <h1>${r.branch?.name || 'School Name'}</h1>
+                <p>${r.branch?.address || 'N/A'}</p>
+                <p style="margin-top: 2px;">Ph: ${r.branch?.phone || ''} | Email: ${r.branch?.email || ''}</p>
+              </div>
             </div>
-            <div class="info-item">
-              <span class="info-label">Father's Name</span>
-              <span class="info-value">${r.student.parentName || 'N/A'}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Admission No</span>
-              <span class="info-value">${r.student.admissionNumber}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Class & Section</span>
-              <span class="info-value">${r.student.class} - ${r.student.section || 'A'}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Roll Number</span>
-              <span class="info-value">${r.student.rollNumber}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">Payment Mode</span>
-              <span class="info-value" style="text-transform: capitalize;">${r.payment.paymentMode}</span>
+            <div class="receipt-meta">
+              <h2>Fee Receipt</h2>
+              <p class="receipt-no">#${r.receiptNumber.toUpperCase()}</p>
+              <div style="font-size: 11px; color: var(--text-light); font-weight: 800; margin-top: 4px;">
+                DATE: ${new Date(r.date).toLocaleDateString('en-IN')}
+              </div>
             </div>
           </div>
-
-          <table class="fee-table">
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th style="text-align: right;">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style="font-weight: 600;">${r.payment.feeType}</td>
-                <td style="text-align: right; font-weight: 700;">₹${r.payment.amount.toLocaleString()}</td>
-              </tr>
-              <tr class="amount-row">
-                <td style="text-align: right; border: none;">TOTAL PAID:</td>
-                <td style="text-align: right; border: none;" class="total-amount">₹${r.payment.amount.toLocaleString()}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div style="margin-bottom: 30px; padding: 15px; border-left: 4px solid #059669; background: #ecfdf5; font-size: 14px;">
-            <strong>Outstanding Balance:</strong> ₹${r.balance.toLocaleString()}
+          
+          <div class="details-grid">
+            <div class="info-box">
+              <h3>Student Details</h3>
+              <p>${r.student.name}</p>
+              <div class="sub-text">
+                ADM NO: ${r.student.admissionNumber || 'N/A'} | CLASS: ${r.student.class?.className || r.student.class} | ROLL: ${r.student.rollNumber || 'N/A'}
+              </div>
+            </div>
+            <div class="info-box" style="text-align: right;">
+              <h3>Payment Status</h3>
+              <p>${r.payment.paymentMode.toUpperCase()}</p>
+              <div class="sub-text">
+                TXN ID: ${r.payment.transactionId || 'CASH_DIRECT'}
+              </div>
+            </div>
           </div>
-
-          <div class="signatures">
-            <div class="sig-box">Accountant's Signature</div>
-            <div class="sig-box">Principal's Signature</div>
+          
+          <div class="table-section">
+            <table class="fee-table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th style="text-align: right;">Paid Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="font-weight: 600;">${r.payment.feeType} Fee Payment</td>
+                  <td class="val" style="color: var(--accent); font-size: 18px;">₹${r.payment.amount.toLocaleString()}</td>
+                </tr>
+                <tr>
+                  <td colspan="2" style="font-size: 11px; color: var(--text-light); font-style: italic; border-bottom: none; padding-top: 10px;">
+                    Amount in words: ${amountInWords}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-
-          <div style="text-align: center; margin-top: 50px; font-size: 11px; color: #94a3b8; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
-            This is an electronically generated document. No signature is required for validity. 
-            <br>Generated on ${new Date().toLocaleString('en-IN')}
+          
+          <div class="summary-wrap">
+            <div class="summary-card">
+              <div class="item">
+                <span>Received Amount</span>
+                <span style="font-weight: 700;">₹${r.payment.amount.toLocaleString()}</span>
+              </div>
+              <div class="item">
+                <span>Pending Balance</span>
+                <span style="color: #ef4444; font-weight: 700;">₹${r.balance.toLocaleString()}</span>
+              </div>
+              <div class="item total-item">
+                <span>Total Received</span>
+                <span>₹${r.payment.amount.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="footer-wrap">
+            <div class="note">
+              <p>• This is a computer-generated receipt and does not require a physical signature.</p>
+              <p>• Please keep this receipt safe for future reference regarding fee adjustments.</p>
+            </div>
+            <div class="signature-wrap">
+              <div class="line"></div>
+              <p>Accountant Signature</p>
+            </div>
           </div>
         </div>
         `;
         
         const printWindow = window.open('', '_blank');
-        printWindow.document.write(`<html><head><title>Receipt ${r.receiptNumber}</title></head><body style="padding: 20px; background: #f1f5f9;">${printContent}</body></html>`);
+        printWindow.document.write(`<html><head><title>Receipt ${r.receiptNumber}</title></head><body>${printContent}</body></html>`);
         printWindow.document.close();
-        setTimeout(() => printWindow.print(), 500);
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
       }
     } catch (error) {
       console.error('Print error:', error);

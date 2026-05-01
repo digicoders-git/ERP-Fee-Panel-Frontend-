@@ -18,7 +18,8 @@ import {
   FaCreditCard,
   FaBuilding,
   FaGift,
-  FaBell
+  FaBell,
+  FaCalendarAlt
 } from 'react-icons/fa';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
@@ -38,6 +39,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     { path: '/receipts', icon: FaReceipt, label: 'Receipts' },
     { path: '/reports', icon: FaChartBar, label: 'Reports' },
     { path: '/profile', icon: FaUser, label: 'Profile' },
+    { path: '/my-attendance', icon: FaCalendarAlt, label: 'My Attendance' },
   ];
 
   const handleLogout = () => {

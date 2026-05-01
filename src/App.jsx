@@ -24,6 +24,7 @@ import HostelLibraryPage from './pages/HostelLibraryPage';
 import PaymentOptionsPage from './pages/PaymentOptionsPage';
 import ScholarshipDiscountPage from './pages/ScholarshipDiscountPage';
 import PendingAlertsPage from './pages/PendingAlertsPage';
+import MyAttendance from './components/MyAttendance';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -89,6 +90,7 @@ function App() {
                   <Route path="settings" element={<Settings />} />
                   <Route path="change-password" element={<ChangePassword />} />
                   <Route path="profile" element={<Profile />} />
+                  <Route path="my-attendance" element={<MyAttendance />} />
                 </Route>
               </Routes>
               
