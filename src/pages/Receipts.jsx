@@ -142,7 +142,7 @@ Thank you for your payment!
   const getImageUrl = (url) => {
     if (!url) return '';
     if (url.startsWith('http')) return url;
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002';
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://erp-backend-0ab5.onrender.com';
     return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
   };
 
